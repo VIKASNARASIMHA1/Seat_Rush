@@ -1,0 +1,36 @@
+# Render Blueprint: one free web service (API + in-process worker) + free Key Value.
+# Postgres lives on Neon, so DATABASE_URL / DIRECT_DATABASE_URL are entered in the dashboard (sync: false).
+services:
+  - type: web
+    name: seatrush
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL          # Neon POOLED connection string (host contains -pooler)
+        sync: false
+      - key: DIRECT_DATABASE_URL   # Neon DIRECT connection string (no -pooler)
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: tm-redis
+          property: connectionString
+      - key: RUN_WORKER_IN_API
+        value: "1"
+      - key: AUTO_SEED
+        value: "1"
+      - key: DB_STATEMENT_CACHE    # required behind PgBouncer
+        value: "0"
+      - key: DB_POOL_MAX
+        value: "10"
+      - key: REDIS_MAX_CONN
+        value: "30"
+      - key: SEED_SEATS
+        value: "2000"
+
+  - type: keyvalue
+    name: tm-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []                # internal access only
